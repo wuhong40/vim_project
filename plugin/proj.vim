@@ -66,6 +66,7 @@ endfunction
 function! s:update_plugin()
     call s:set_nerd_bookmark()
     call s:set_yank_history()
+    call s:set_syntastic()
     call s:update_lookup_file_tag()
     call s:update_cctree()
 endfunction
@@ -206,6 +207,23 @@ endfunction
 " Yankring
 function! s:set_yank_history()
     let g:yankring_history_dir = s:get_yankring_history_path()
+endfunction
+
+function! s:set_syntastic()
+    let g:syntastic_c_include_dirs = [ 'includes', 'headers', 'inc' ]
+    " let file_list_cmd = cmd . ' -print > ' . s:get_file_list_path_by_ft(a:file_type)
+    let include_files = readfile(s:get_file_list_path_by_ft("h"))
+    let include_dir_list = []
+
+    for inc_file in include_files
+        let inc_dir = fnamemodify(inc_file, ":h")
+        if index(include_dir_list, inc_dir) < 0
+            call add(include_dir_list, inc_dir)
+        endif
+    endfor
+
+    call extend(g:syntastic_c_include_dirs, include_dir_list)
+    " echo g:syntastic_c_include_dirs
 endfunction
 
 function! s:get_nerd_bookmarks_path()
