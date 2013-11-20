@@ -27,7 +27,7 @@ function! s:set_file_modify_state(file_type, state)
         let ft_idx = ft_idx + 1
     endwhile
     if a:state == 1
-        set updatetime=200
+        set updatetime=1000
     endif
 endfunction
 
