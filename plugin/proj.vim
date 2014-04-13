@@ -211,6 +211,7 @@ endfunction
 
 function! s:set_syntastic()
     let g:syntastic_c_include_dirs = [ 'includes', 'headers', 'inc' ]
+
     " let file_list_cmd = cmd . ' -print > ' . s:get_file_list_path_by_ft(a:file_type)
     let include_files = readfile(s:get_file_list_path_by_ft("h"))
     let include_dir_list = []
@@ -223,6 +224,21 @@ function! s:set_syntastic()
     endfor
 
     call extend(g:syntastic_c_include_dirs, include_dir_list)
+
+    let g:syntastic_cpp_include_dirs = deepcopy(g:syntastic_c_include_dirs)
+    if isdirectory("/usr/include/qt5/")
+        call add(g:syntastic_cpp_include_dirs, '/usr/include/qt5')
+        call add(g:syntastic_cpp_include_dirs, '/usr/include/qt5/QtGui')
+        call add(g:syntastic_cpp_include_dirs, '/usr/include/qt5/QtSql')
+        call add(g:syntastic_cpp_include_dirs, '/usr/include/qt5/QtCore')
+        call add(g:syntastic_cpp_include_dirs, '/usr/include/qt5/QtXml')
+        call add(g:syntastic_cpp_include_dirs, '/usr/include/qt5/QtWidgets')
+        call add(g:syntastic_cpp_include_dirs, '/usr/include/qt5/QtPrintSupport')
+        call add(g:syntastic_cpp_include_dirs, '/usr/include/qt5/QtNetwork')
+        call add(g:syntastic_cpp_include_dirs, '/usr/include/qt5/QtQml')
+        call add(g:syntastic_cpp_include_dirs, '/usr/include/qt5/QtOpenGL')
+        call add(g:syntastic_cpp_include_dirs, '/usr/include/qt5/QtDBus')
+    endif
     " echo g:syntastic_c_include_dirs
 endfunction
 
