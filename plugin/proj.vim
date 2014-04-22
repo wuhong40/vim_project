@@ -40,6 +40,10 @@ function! s:do_update()
         endif
         let ft_idx = ft_idx + 1
     endwhile
+
+    " syntastic check
+    " execute ":SyntasticCheck"
+
     set updatetime=4000 " Set updatetime to default
 endfunction
 
@@ -52,8 +56,6 @@ endfunction
 " ===========================================================================
 function! s:save_proj_setting()
     let line_list = []
-
-    call add(line_list, "let g:syntastic_check_on_open=" . g:syntastic_check_on_open)
 endfunction
 
 function! s:load_proj_setting()
