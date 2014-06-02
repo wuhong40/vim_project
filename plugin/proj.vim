@@ -2,11 +2,14 @@ let g:proj_ignore_dir = ['.git', '.svn', '.hg', '.vimproject', 'moc*']
 let g:proj_search_file_type = ['cpp', 'h', 'c']
 
 let g:proj_is_load = 0
-
+let g:proj_is_updated = 0
 function! s:do_vim_idle()
-    call s:update_proj_file_list()
-    call s:auto_save_session()
-    call s:do_update()
+    if g:proj_is_updated == 1
+        let g:proj_is_updated = 0
+        call s:update_proj_file_list()
+        call s:auto_save_session()
+        call s:do_update()
+    endif
 endfunction
 
 let s:proj_file_is_modify = []
@@ -27,12 +30,14 @@ function! s:set_file_modify_state(file_type, state)
         let ft_idx = ft_idx + 1
     endwhile
     if a:state == 1
-        set updatetime=1000
+        " set updatetime=4000
+        let g:proj_is_updated = 1
     endif
 endfunction
 
-function! s:do_update()
+function! s:update_files()
     if !s:is_project() | return | endif
+
     let ft_idx = 0
     while ft_idx < len(g:proj_search_file_type)
         if s:proj_file_is_modify[ft_idx] == 1
@@ -40,12 +45,19 @@ function! s:do_update()
         endif
         let ft_idx = ft_idx + 1
     endwhile
+endfunction
+
+function! s:do_update()
+    if !s:is_project() | return | endif
+
+    call s:update_files()
 
     " syntastic check
     " execute ":SyntasticCheck"
 
-    set updatetime=4000 " Set updatetime to default
+    "set updatetime=4000 " Set updatetime to default
 endfunction
+
 
 function! s:do_update_by_ft(file_type)
     call s:update_tags_cscope(a:file_type)
@@ -161,7 +173,7 @@ function! s:update_proj_file_list_by_ft(file_type)
 
         let ignore_dir_idx = 0
         for ignore_dir in g:proj_ignore_dir
-            let cmd = cmd . ' -name ' . ignore_dir
+            let cmd = cmd . ' -name "' . ignore_dir . '"'
 
             let ignore_dir_idx = ignore_dir_idx + 1
             if ignore_dir_idx < ignore_dir_cnt
@@ -186,7 +198,6 @@ function! s:update_proj_file_list_by_ft(file_type)
     let lookup_file_cmd = cmd . ' -printf "%f\t%p\t1\n"'
     let lookup_file_cmd = lookup_file_cmd . ' >> ' . s:get_lookup_file_tag_path()
 
-    " echoerr lookup_file_cmd
     call system(file_list_cmd)
     call system(lookup_file_cmd)
     " call s:update_tags_cscope(a:file_type)
@@ -228,20 +239,20 @@ function! s:set_syntastic()
     call extend(g:syntastic_c_include_dirs, include_dir_list)
 
     let g:syntastic_cpp_include_dirs = deepcopy(g:syntastic_c_include_dirs)
-    let qt_inc_dir = g:wh_vim_dir.'/include/qt/'
-    if isdirectory(qt_inc_dir)
-        call add(g:syntastic_cpp_include_dirs, qt_inc_dir)
-        call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtGui')
-        call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtSql')
-        call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtCore')
-        call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtXml')
-        call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtWidgets')
-        call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtPrintSupport')
-        call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtNetwork')
-        call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtQml')
-        call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtOpenGL')
-        call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtDBus')
-    endif
+
+    " let qt_inc_dir = g:wh_vim_dir.'/include/qt/'
+    " if isdirectory("/usr/include/qt5")
+    "     let qt_inc_dir = "/usr/include/qt5/"
+    " endif
+    " if isdirectory(qt_inc_dir)
+    "     call add(g:syntastic_cpp_include_dirs, qt_inc_dir)
+        " call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtGui')
+        " call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtSql')
+        " call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtCore')
+        " call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtXml')
+        " call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtWidgets')
+        " call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtNetwork')
+    " endif
     " echo g:syntastic_c_include_dirs
 endfunction
 
@@ -332,6 +343,7 @@ function! s:create_proj()
 endfunction
 
 command ProjCreate  :call <SID>create_proj()
+command ProjUpdate  :call <SID>update_files()
 
 augroup VimProj
   autocmd!
