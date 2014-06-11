@@ -82,11 +82,7 @@ function! s:update_plugin()
     call s:set_yank_history()
     call s:set_syntastic()
     call s:update_lookup_file_tag()
-    call s:update_cctree()
-endfunction
-
-function! s:update_cctree()
-    " execute "CCTreeLoadDB " . s:get_proj_cscope_path()
+    call s:update_neocomplete()
 endfunction
 
 " ===========================================================================
@@ -254,6 +250,35 @@ function! s:set_syntastic()
         " call add(g:syntastic_cpp_include_dirs, qt_inc_dir.'QtNetwork')
     " endif
     " echo g:syntastic_c_include_dirs
+endfunction
+
+function! s:update_neocomplete()
+    " update include dir
+    let include_files = readfile(s:get_file_list_path_by_ft("h"))
+    let include_dir_str = ''
+    let include_dir_list = []
+
+    for inc_file in include_files
+        let inc_dir = fnamemodify(inc_file, ":h")
+        if index(include_dir_list, inc_dir) < 0
+            call add(include_dir_list, inc_dir)
+            let include_dir_str = include_dir_str . inc_dir . ','
+        endif
+    endfor
+
+    let include_dir_str = include_dir_str . '/usr/include/, /usr/include/c++/*, /usr/include/*/c++/*, /usr/include/*/'
+    if !exists('g:neocomplete#sources#include#paths')
+      let g:neocomplete#sources#include#paths = {}
+    endif
+    let g:neocomplete#sources#include#paths.c = include_dir_str
+    let g:neocomplete#sources#include#paths.cpp = include_dir_str
+
+    " update tag
+    " let tags_str = ''
+    " for ft in g:proj_search_file_type
+    "     let tags_str = s:get_proj_tag_path(ft) . ','
+    " endfor
+    " let g:neocomplete#sources#tags
 endfunction
 
 function! s:get_nerd_bookmarks_path()
