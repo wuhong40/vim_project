@@ -15,7 +15,7 @@ endfunction
 let s:proj_file_is_modify = []
 function! s:init_file_modify_state()
     for ft in g:proj_search_file_type
-        call add(s:proj_file_is_modify, 0)
+        call add(s:proj_file_is_modify, 1)
     endfor
 endfunction
 
@@ -90,13 +90,8 @@ endfunction
 " ===========================================================================
 function! s:auto_load_session()
     if !s:is_project()
-        nmap    <silent> <F5>   :CtrlP<CR>
-        imap    <silent> <F5>   <ESC>:CtrlP<CR>
         return
     endif
-
-    nmap <unique> <silent> <F5> <Plug>LookupFile
-    imap <unique> <silent> <F5> <C-O><Plug>LookupFile
 
     let g:proj_is_load = 1
 
@@ -330,7 +325,7 @@ endfunction
 
 let s:proj_dir = "./.vimproject/"
 function! s:get_proj_file_path(file_path)
-    return s:proj_dir.a:file_path
+    return fnamemodify(s:proj_dir.a:file_path, ':p')
 endfunction
 
 function! s:reset_ctag_connect(tag_name)
@@ -364,7 +359,12 @@ endfunction
 function! s:create_proj()
     if !isdirectory(s:proj_dir)
         call mkdir(s:proj_dir)
+        call s:init_file_modify_state()
+        call s:update_files()
+        let g:proj_is_updated = 1
+        call s:do_vim_idle()
     endif
+    echo "Job Done!"
 endfunction
 
 command ProjCreate  :call <SID>create_proj()
