@@ -142,6 +142,8 @@ endfunction
 
 function! s:update_proj_file_list()
     call s:write_lookupfile_tag_head()
+    call s:gen_lookupfile_tags()
+
     for ft in g:proj_search_file_type
         call s:update_proj_file_list_by_ft(ft)
     endfor
@@ -150,6 +152,39 @@ endfunction
 function! s:write_lookupfile_tag_head()
     let lookup_file_cmd = 'echo "!_TAG_FILE_SORTED	2	/2=foldcase/"'
     let lookup_file_cmd = lookup_file_cmd . " > " . s:get_lookup_file_tag_path()
+
+    call system(lookup_file_cmd)
+endfunction
+
+function! s:gen_lookupfile_tags()
+    let cmd = 'find ' . fnamemodify("./", ":p")
+    let ignore_dir_cnt = len(g:proj_ignore_dir)
+    if ignore_dir_cnt > 0
+        if ignore_dir_cnt > 1
+            let cmd = cmd . ' \( '
+        endif
+
+        let ignore_dir_idx = 0
+        for ignore_dir in g:proj_ignore_dir
+            let cmd = cmd . ' -name "' . ignore_dir . '"'
+
+            let ignore_dir_idx = ignore_dir_idx + 1
+            if ignore_dir_idx < ignore_dir_cnt
+                let cmd = cmd . ' -o '
+            endif
+        endfor
+
+        if ignore_dir_cnt > 1
+            let cmd = cmd . ' \) '
+        endif
+
+        let cmd = cmd . ' -prune -o'
+    endif
+
+    let cmd = cmd . ' -type f '
+
+    let lookup_file_cmd = cmd . ' -printf "%f\t%p\t1\n"'
+    let lookup_file_cmd = lookup_file_cmd . ' >> ' . s:get_lookup_file_tag_path()
 
     call system(lookup_file_cmd)
 endfunction
@@ -186,12 +221,7 @@ function! s:update_proj_file_list_by_ft(file_type)
 
     let file_list_cmd = cmd . ' -print > ' . s:get_file_list_path_by_ft(a:file_type)
 
-    let lookup_file_cmd = cmd . ' -printf "%f\t%p\t1\n"'
-    let lookup_file_cmd = lookup_file_cmd . ' >> ' . s:get_lookup_file_tag_path()
-
     call system(file_list_cmd)
-    call system(lookup_file_cmd)
-    " call s:update_tags_cscope(a:file_type)
 endfunction
 
 function! s:update_lookup_file_tag()
