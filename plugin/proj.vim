@@ -117,8 +117,12 @@ endfunction
 " ===========================================================================
 " CTags & Cscope
 " ===========================================================================
-let s:ctags_cmd     = g:wh_ctags_cmd . " -R --c++-kinds=+p --fields=+iaS --extra=+q -L "
-let s:cscope_cmd 	= g:wh_cscope_cmd . " -bkq -i "
+let s:ctags_cmd  = g:wh_ctags_cmd . " -R --c++-kinds=+p --fields=+iaS --extra=+q -L "
+let s:cscope_cmd = g:wh_cscope_cmd . " -bkq -i "
+if g:wh_is_windows == 1
+let s:ctags_cmd  = '"' . g:wh_ctags_cmd . '" -R --c++-kinds=+p --fields=+iaS --extra=+q -L '
+let s:cscope_cmd = '"'. g:wh_cscope_cmd . '" -bkq -i '
+endif
 function! s:update_tags_cscope_all()
     for ft in g:proj_search_file_type
         call s:update_tags_cscope(ft)
@@ -151,77 +155,59 @@ endfunction
 
 function! s:write_lookupfile_tag_head()
     let lookup_file_cmd = 'echo "!_TAG_FILE_SORTED	2	/2=foldcase/"'
-    let lookup_file_cmd = lookup_file_cmd . " > " . s:get_lookup_file_tag_path()
+    let lookup_file_cmd = lookup_file_cmd . " > " . escape(s:get_lookup_file_tag_path(), ' \')
+
+    if g:wh_is_windows == 1
+        let lookup_file_cmd = '(' . lookup_file_cmd . ')'
+    endif
 
     call system(lookup_file_cmd)
 endfunction
 
 function! s:gen_lookupfile_tags()
-    let cmd = 'find ' . fnamemodify("./", ":p")
-    let ignore_dir_cnt = len(g:proj_ignore_dir)
-    if ignore_dir_cnt > 0
-        if ignore_dir_cnt > 1
-            let cmd = cmd . ' \( '
-        endif
-
-        let ignore_dir_idx = 0
-        for ignore_dir in g:proj_ignore_dir
-            let cmd = cmd . ' -name "' . ignore_dir . '"'
-
-            let ignore_dir_idx = ignore_dir_idx + 1
-            if ignore_dir_idx < ignore_dir_cnt
-                let cmd = cmd . ' -o '
-            endif
-        endfor
-
-        if ignore_dir_cnt > 1
-            let cmd = cmd . ' \) '
-        endif
-
-        let cmd = cmd . ' -prune -o'
+    let cmd = g:wh_find_cmd . ' ' . escape(fnamemodify("./", ":p"), ' \')
+    if g:wh_is_windows == 1
+        let cmd = '"' . g:wh_find_cmd . '" ' . escape(fnamemodify("./", ":p"), ' \')
     endif
 
     let cmd = cmd . ' -type f '
 
     let lookup_file_cmd = cmd . ' -printf "%f\t%p\t1\n"'
-    let lookup_file_cmd = lookup_file_cmd . ' >> ' . s:get_lookup_file_tag_path()
+    let lookup_file_cmd = lookup_file_cmd . ' >> ' . escape(s:get_lookup_file_tag_path(), ' \')
+
+    if g:wh_is_windows == 1
+        let lookup_file_cmd = '(' . lookup_file_cmd . ')'
+    endif
 
     call system(lookup_file_cmd)
 endfunction
 
 function! s:update_proj_file_list_by_ft(file_type)
-    let cmd = 'find ' . fnamemodify("./", ":p")
-    let ignore_dir_cnt = len(g:proj_ignore_dir)
-    if ignore_dir_cnt > 0
-        if ignore_dir_cnt > 1
-            let cmd = cmd . ' \( '
-        endif
-
-        let ignore_dir_idx = 0
-        for ignore_dir in g:proj_ignore_dir
-            let cmd = cmd . ' -name "' . ignore_dir . '"'
-
-            let ignore_dir_idx = ignore_dir_idx + 1
-            if ignore_dir_idx < ignore_dir_cnt
-                let cmd = cmd . ' -o '
-            endif
-        endfor
-
-        if ignore_dir_cnt > 1
-            let cmd = cmd . ' \) '
-        endif
-
-        let cmd = cmd . ' -prune -o'
+    let cmd = g:wh_find_cmd. ' ' . escape(fnamemodify("./", ":p"), ' \')
+    if g:wh_is_windows == 1
+        let cmd = '"' . g:wh_find_cmd. '" ' . escape(fnamemodify("./", ":p"), ' \')
     endif
 
-    let cmd = cmd . " -iregex '.*\\.\\("
-    let cmd = cmd . a:file_type . '$'
-    let cmd = cmd . "\\).*' "
-    let cmd = cmd . ' -type f '
+    let cmd = cmd . ' -type f -print | grep \.' . a:file_type . '$'
 
-    let file_list_cmd = cmd . ' -print > ' . s:get_file_list_path_by_ft(a:file_type)
+    let file_list_cmd = cmd . ' > ' . escape(s:get_file_list_path_by_ft(a:file_type), ' \')
+
+    if g:wh_is_windows == 1
+        let file_list_cmd = '(' . file_list_cmd . ')'
+    endif
 
     call system(file_list_cmd)
+
+    if a:file_type == 'cpp'
+        let files = readfile(s:get_file_list_path_by_ft(a:file_type))
+        let files_ok = []
+        for file in files
+            if file !~ 'moc_.*\.cpp$'
+                call add(files_ok, file)
+            endif
+        endfor
+        call writefile(files_ok, s:get_file_list_path_by_ft(a:file_type))
+    endif
 endfunction
 
 function! s:update_lookup_file_tag()
