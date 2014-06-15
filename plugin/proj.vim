@@ -397,15 +397,30 @@ function! s:create_proj()
     echo "Job Done!"
 endfunction
 
-command ProjCreate  :call <SID>create_proj()
-command ProjUpdate  :call <SID>update_files()
+function! s:proj_open(dir)
+    if !isdirectory(a:dir)
+        echoerr 'Please enter direcotry!'
+    else
+        if !isdirectory(a:dir."/.vimproject")
+            echoerr a:dir . ' is not project direcotry!'
+        else
+            execute 'cd '.a:dir
+            call s:auto_load_session()
+        endif
+    endif
+endfunction
+
+command Pcreate  :call <SID>create_proj()
+command Pupdate  :call <SID>update_files()
+command Pload    :call <SID>auto_load_session()
+command -complete=dir -nargs=1 Popen  call <SID>proj_open(<q-args>)
 
 augroup VimProj
   autocmd!
   au VimEnter * nested call s:auto_load_session()
   au CursorHold,CursorHoldI *.h,*.c,*.cpp call s:do_vim_idle()
-  au VimLeavePre *          call s:auto_save_session()
-  au BufWritePost *.h       call s:set_file_modify_state("h", 1)
-  au BufWritePost *.cpp     call s:set_file_modify_state("cpp", 1)
-  au BufWritePost *.c       call s:set_file_modify_state("c", 1)
+  au VimLeavePre *      call s:auto_save_session()
+  au BufWritePost *.h   call s:set_file_modify_state("h", 1)
+  au BufWritePost *.cpp call s:set_file_modify_state("cpp", 1)
+  au BufWritePost *.c   call s:set_file_modify_state("c", 1)
 augroup END
