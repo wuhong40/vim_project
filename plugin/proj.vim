@@ -1,5 +1,7 @@
 let g:proj_ignore_dir = ['.git', '.svn', '.hg', '.vimproject', 'moc*']
 let g:proj_search_file_type = ['cpp', 'h', 'c']
+let g:proj_list_path = g:wh_temporary_dir . 'vimproj_list'
+let g:proj_list = []
 
 let g:proj_is_load = 0
 let g:proj_is_updated = 0
@@ -93,6 +95,7 @@ function! s:auto_load_session()
         return
     endif
 
+    call s:proj_list_set_mru(fnamemodify('.', ':p'))
     let g:proj_is_load = 1
 
     call s:init_file_modify_state()
@@ -372,23 +375,103 @@ function! s:gen_ctags(file_list, tags_path)
    	call system(cmd)
 endfunction
 
-function! s:create_proj()
+function! s:proj_list_remove(proj_dir)
+    let proj_idx = 0
+    while proj_idx < len(g:proj_list)
+        let proj = g:proj_list[proj_idx]
+        if fnamemodify(proj.dir, ':p') == fnamemodify(a:proj_dir, ':p')
+            call remove(g:proj_list, proj_idx)
+        else
+            let proj_idx = proj_idx + 1
+        endif
+    endwhile
+endfunction
+
+function! s:proj_list_load()
+    if len(g:proj_list) > 0
+        call remove(g:proj_list, 0, len(g:proj_list) - 1)
+    endif
+
+    if !filereadable(g:proj_list_path)
+        return
+    endif
+
+    let proj_str_lsit = readfile(g:proj_list_path)
+    for proj_str in proj_str_lsit
+        let split_list = split(proj_str, "\t")
+        if len(split_list) < 2
+            continue
+        endif
+
+        let proj_name = split_list[0]
+        let proj_dir  = split_list[1]
+
+        if isdirectory(proj_dir)
+            call s:proj_list_add(proj_name, proj_dir)
+        endif
+    endfor
+endfunction
+
+function! s:proj_list_write()
+    let proj_str_lsit = []
+    for proj in g:proj_list
+        call add(proj_str_lsit, proj.name . "\t" . proj.dir)
+    endfor
+    call writefile(proj_str_lsit, g:proj_list_path)
+endfunction
+
+function! s:proj_list_add(proj_name, proj_dir)
+    call add(g:proj_list, {'name' : a:proj_name, 'dir' : fnamemodify(a:proj_dir, ':p')})
+endfunction
+
+function! s:proj_list_get_name(proj_dir)
+    for proj in g:proj_list
+        if  proj.dir == a:proj_dir
+            return proj.name
+        endif
+    endfor
+    return 'Unknown'
+endfunction
+
+function! s:proj_list_get_dir(proj_name)
+    for proj in g:proj_list
+        if  proj.name == a:proj_name
+            return proj.dir
+        endif
+    endfor
+    return ''
+endfunction
+
+function! s:proj_list_set_mru(proj_dir)
+    let proj_dir = fnamemodify(a:proj_dir, ':p')
+    let proj_name = s:proj_list_get_name(proj_dir)
+    call s:proj_list_remove(proj_dir)
+    call s:proj_list_add(proj_name, proj_dir)
+    call s:proj_list_write()
+endfunction
+
+function! s:create_proj(proj_name)
     if !isdirectory(s:proj_dir)
         call mkdir(s:proj_dir)
         call s:init_file_modify_state()
         call s:update_files()
         let g:proj_is_updated = 1
         call s:do_vim_idle()
+
+        " Add proj to list
+        call s:proj_list_remove('.')
+        call s:proj_list_add(a:proj_name, '.')
+        call s:proj_list_write()
     endif
     echo "Job Done!"
 endfunction
 
-function! s:proj_open(dir)
+function! s:proj_open_by_dir(dir)
     if !isdirectory(a:dir)
-        echoerr 'Please enter direcotry!'
+        echomsg 'Please enter direcotry!'
     else
         if !isdirectory(a:dir."/.vimproject")
-            echoerr a:dir . ' is not project direcotry!'
+            echomsg a:dir . ' is not project direcotry!'
         else
             execute 'cd '.a:dir
             call s:auto_load_session()
@@ -396,13 +479,40 @@ function! s:proj_open(dir)
     endif
 endfunction
 
-command Pcreate  :call <SID>create_proj()
+function! s:proj_open_by_name(name)
+    let proj_dir = s:proj_list_get_dir(a:name)
+    if proj_dir == ''
+        echoms "No such proj!"
+    elseif !isdirectory(proj_dir)
+        echomsg a:name . "directory is:" . proj_dir . ", but is doesnt't exist! Please Check!"
+    else
+        if !isdirectory(proj_dir."/.vimproject")
+            echoerr proj_dir . ' is not project direcotry!'
+        else
+            execute 'cd '.proj_dir
+            call s:auto_load_session()
+        endif
+    endif
+endfunction
+
+function! s:proj_list_cmdline_complete(ArgLead, CmdLine, CursorPos)
+    let str = ""
+
+    for proj in g:proj_list
+        let str = proj['name'] . "\n"
+    endfor
+
+    return str
+endfunction
+
+command -nargs=1 Pcreate  :call <SID>create_proj(<q-args>)
 command Pupdate  :call <SID>update_files()
 command Pload    :call <SID>auto_load_session()
-command -complete=dir -nargs=1 Popen  call <SID>proj_open(<q-args>)
+command -complete=custom,s:proj_list_cmdline_complete -nargs=1 Popen  call <SID>proj_open_by_name(<q-args>)
 
 augroup VimProj
   autocmd!
+  au VimEnter * nested call s:proj_list_load()
   au VimEnter * nested call s:auto_load_session()
   au CursorHold,CursorHoldI *.h,*.c,*.cpp call s:do_vim_idle()
   au VimLeavePre *      call s:auto_save_session()
