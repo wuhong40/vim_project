@@ -503,8 +503,8 @@ function! s:proj_list_cmdline_complete(ArgLead, CmdLine, CursorPos)
     for proj in g:proj_list
         let str = str . proj['name']
 
-        if proj_idx == len(g:proj_list) - 1
-            let str = str . '\n'
+        if proj_idx < len(g:proj_list) - 1
+            let str = str . "\n"
         endif
 
         let proj_idx = proj_idx + 1
