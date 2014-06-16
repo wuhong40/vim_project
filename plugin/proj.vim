@@ -451,6 +451,7 @@ function! s:proj_list_set_mru(proj_dir)
 endfunction
 
 function! s:create_proj(proj_name)
+    echo "Start create project, please wait ..."
     if !isdirectory(s:proj_dir)
         call mkdir(s:proj_dir)
         call s:init_file_modify_state()
@@ -498,8 +499,15 @@ endfunction
 function! s:proj_list_cmdline_complete(ArgLead, CmdLine, CursorPos)
     let str = ""
 
+    let proj_idx = 0
     for proj in g:proj_list
-        let str = proj['name'] . "\n"
+        let str = str . proj['name']
+
+        if proj_idx == len(g:proj_list) - 1
+            let str = str . '\n'
+        endif
+
+        let proj_idx = proj_idx + 1
     endfor
 
     return str
