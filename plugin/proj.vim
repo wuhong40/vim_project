@@ -421,7 +421,7 @@ function! s:proj_list_write()
 endfunction
 
 function! s:proj_list_add(proj_name, proj_dir)
-    call add(g:proj_list, {'name' : a:proj_name, 'dir' : fnamemodify(a:proj_dir, ':p')})
+    call insert(g:proj_list, {'name' : a:proj_name, 'dir' : fnamemodify(a:proj_dir, ':p')})
 endfunction
 
 function! s:proj_list_get_name(proj_dir)
@@ -522,8 +522,10 @@ augroup VimProj
   autocmd!
   au VimEnter * nested call s:proj_list_load()
   au VimEnter * nested call s:auto_load_session()
+  au VimEnter * nested call VimProjBufInit()
   au CursorHold,CursorHoldI *.h,*.c,*.cpp call s:do_vim_idle()
   au VimLeavePre *      call s:auto_save_session()
+  au BufEnter *         call VimProjBufEnter()
   au BufWritePost *.h   call s:set_file_modify_state("h", 1)
   au BufWritePost *.cpp call s:set_file_modify_state("cpp", 1)
   au BufWritePost *.c   call s:set_file_modify_state("c", 1)
