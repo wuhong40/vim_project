@@ -102,7 +102,7 @@ function! s:auto_load_session()
         execute "source " . session_file
     endif
     if filereadable(viminfo_file)
-        silent! execute "rviminfo! ". viminfo_file
+        execute "rviminfo! ". viminfo_file
     endif
     call s:update_plugin()
     call s:update_tags_cscope_all()
